@@ -9,6 +9,7 @@
 
 import json
 import mysql.connector
+import traceback
 
 from umslogger import logger
 from umsexception import UmsException
@@ -63,12 +64,13 @@ class UmsDB(object):
                                 "character_set_results='{}', "
                                 "character_set_client=binary").format(self.charset, self.charset))
             except Exception as err:
+                logger.error("connection error: {}".format(traceback.format_exc()))
                 raise UmsException("connection error")
 
         return self.conn
 
-    def findOne(self, table='', where=None, field=None, order=None, sql=None):
-        '''查找一条记录
+    def findOneEx(self, table='', where=None, field=None, order=None, sql=None):
+        '''查找一条记录，返回的是一个对象，对findOne的一个优化
 
         Args:
             @param table     : 表名
@@ -78,7 +80,28 @@ class UmsDB(object):
             @param order     : 排序，例：ORDER BY create_time DESC
             @param sql       : 完整的SQL，前面的where、field、order均不在生效
 
-        Returns:
+        Returns: object
+        '''
+        result = self.findOne(table, where, field, order, sql)[0]
+        if len(result) <= 0:
+            logger.warn('result is empty')
+            return None
+        
+        # 有数据，选取第一个
+        return result[0]
+
+    def findOne(self, table='', where=None, field=None, order=None, sql=None):
+        '''查找一条记录，这里返回的仍然是一个数组，且使用时需判断数组是否为空
+
+        Args:
+            @param table     : 表名
+            @param where     : 查询条件
+            @param field     : 要查询的列
+            @param password  : 密码
+            @param order     : 排序，例：ORDER BY create_time DESC
+            @param sql       : 完整的SQL，前面的where、field、order均不在生效
+
+        Returns: list
         '''
         return self._find(table, where, field, order, 1, sql)
 
@@ -178,15 +201,47 @@ class UmsDB(object):
 
         return self.cursor.lastrowid
 
-    def insertBatch(self, table, cols, vals):
+
+    def insertBatchEx(self, table, data):
+        """ 批量插入数据，当数据较多时，单条插入会非常耗时
+            这里需要手动的开启事务
+
+        Args:
+            table: 表名
+            data:  要写入数据库的数据，这里是一个数组格式
+                   数组内部是一个字典类型，key为数据库字段名，value为值
+
+        Returns: 影响的行数
+        """
+
+        t = type(data)
+        if t != list:
+            raise UmsException("error data,need list[list]")
+
+        cols = []
+        vals = []
+        for item in data:
+            if type(item) != dict:
+                raise UmsException("error data element,need list[list]")
+
+            if not cols:
+                cols = list(item.keys())
+
+            vals.append(list(item.values()))
+        
+        return self.insertBatch(table, cols, vals, auto_commit=False)
+
+
+    def insertBatch(self, table, cols, vals, auto_commit=True):
         """批量插入数据，当数据较多时，单条插入会非常耗时
 
         Args:
             table: 表名
             cols: 表列，数组
             vals: 每列对应的值，数组，数组的元素还是一个数组
+            auto_commit: 事务是否自动提交，一般而言，分批插入可能会自己启动事务
 
-        Returns: 最后一条记录的自增Id
+        Returns: 影响的行数
         """
         
         t = type(cols)
@@ -206,9 +261,10 @@ class UmsDB(object):
         
         sql = "INSERT INTO %s (%s) VALUES %s" % (self.table(table), field, placeholder)
         self.executeSQL(sql, vals)
-        self.conn.commit()
+        if auto_commit:
+            self.conn.commit()
 
-        return self.cursor.lastrowid
+        return self.cursor.rowcount
 
 
     def updateSelective(self, table, where, params):
