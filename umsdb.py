@@ -82,7 +82,7 @@ class UmsDB(object):
 
         Returns: object
         '''
-        result = self.findOne(table, where, field, order, sql)[0]
+        result = self.findOne(table, where, field, order, sql)
         if len(result) <= 0:
             logger.warn('result is empty')
             return None
@@ -147,10 +147,14 @@ class UmsDB(object):
             sql = "SELECT %s FROM %s WHERE %s %s %s" % (field, self.table(table), where, order, limit)
         self.executeSQL(sql)
 
-        if 1 == limit:
-            return self.cursor.fetchone()
-        else:
-            return self.cursor.fetchall()
+        # fetchone返回的是一个dict，上面的findOneEx会有问题
+        # 解决方案可以调整findOne，也可以调整这里 2021-09-28
+        # if 1 == limit:
+        #     return self.cursor.fetchone()
+        # else:
+        #     return self.cursor.fetchall()
+
+        return self.cursor.fetchall()
 
 
     def insertSelective(self, table, params):

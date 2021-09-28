@@ -15,6 +15,20 @@ def format_now(pattern):
     """
     return datetime.datetime.now().strftime(pattern)
 
+def add_minutes(dt, minutes):
+    """
+    获取指定的时间dt在minutes分钟前后的时间
+
+    :type: datetime.datetime
+    :param dt: 时间
+
+    :type: int
+    :param minutes: 分钟，可以为负数，>0返回向后时间；<0返回向前时间
+
+    :return: 距离dt指定minutes的时间
+    """
+    return dt - datetime.timedelta(minutes = minutes)
+
 def get_random(len, contain_char = False, upcase = False):
     """生成指定长度的随机数
 
@@ -39,3 +53,4 @@ def get_random(len, contain_char = False, upcase = False):
 if __name__ == '__main__':
     print("now =", format_now('%Y-%m-%d %H:%M:%S'))
     print("random =", get_random(32, True))
+    print("random =", add_minutes(datetime.datetime.now(), 10))

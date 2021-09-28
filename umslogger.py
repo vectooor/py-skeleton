@@ -19,7 +19,7 @@ if not os.path.exists(os.path.dirname(LOG_FILENAME)):
 logger = logging.getLogger()
 
 def set_logger():
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s-[%(process)d-%(threadName)s]-'
                                   '[%(pathname)s line:%(lineno)d]-%(levelname)s: %(message)s')
     console_handler = logging.StreamHandler()
