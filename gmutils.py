@@ -5,7 +5,6 @@
 # @date: 2022-03-20
 
 import base64
-import re
 from gmssl import sm3, sm4, func
 
 DEFAULT_CHARSET = "utf-8"
@@ -116,16 +115,17 @@ def sm4_decrypt(key, text, mode = SM4_ECB, iv = "0000000000000000", encoding = E
 
 
 if __name__ == "__main__":
+    from umslogger import logger
     sign_text = "123456789"
     sign = sm3_sign(sign_text)
-    print(sign)
-    print(sm3_verify(sign_text, sign))
+    logger.info(sign)
+    logger.info(sm3_verify(sign_text, sign))
 
     text = "hello world"
     key = "1234567890123456"
     # result = sm4_encrypt(key, text, mode=SM4_CBC)
     result = sm4_encrypt(key, text)
-    print(result)
+    logger.info(result)
     # print(sm4_decrypt(key, result, mode=SM4_CBC))
-    print(sm4_decrypt(key, result))
+    logger.info(sm4_decrypt(key, result))
 
